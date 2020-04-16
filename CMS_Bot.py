@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
-chrome_options.add_argument("--start-maximized")
+# chrome_options.add_argument("--start-maximized")
 # chrome_options.add_argument('--headless')
 
 # SETUP LOGGING
@@ -63,30 +63,26 @@ class CMSBot:
 		l.info("clicked [Generate Bullets]")
 		t.sleep(1)
 
-	def dates(value):
+	def dates(self, value):
 		b = self.b
 		b.find_element_by_id("PublicationDate").send_keys(value)
 		b.find_element_by_id("LiveDate").send_keys(value)
 		t.sleep(1)
 
+	def additional_info(self, award):
+		b = self.b
+		i = b.find_element_by_id('AdditionalInformation')
+		v = i.get_attribute('value') # get existing info
+		i.clear()
+		l.info('existing info - ' + v) 
+		i.send_keys(award + ', ' + v) # append award and strip existing Shortlisted if present
+		l.info('appending - ' + award)
+		n = b.find_element_by_id('AdditionalInformation').get_attribute('value')
+		l.info('new info - ' + n)
+
 ##################### Generate Bullets ########################
 
-def generate_bullets(cms, IDs):
-	'''Just needs a list of IDs in the CSV column ID'''
-
-	for ID in IDs:
-		# checks ID is 6 digits
-		if len(ID) == 6:
-			l.info(f'-> editing {ID}')
-			cms.edit(ID)
-			t.sleep(1)
-			cms.bullets()
-			t.sleep(1)
-			# cms.save()
-		else:
-			l.info('- ID was not 6 digits long')
-
-def generate_bullets_window():
+def generate_bullets_window(cms):
 	'''
 	# INSTRUCTIONS
 	- all you do is paste a column of IDs into the input field
@@ -98,58 +94,132 @@ def generate_bullets_window():
 										[sg.InputText()],
 										[sg.Submit(), sg.Cancel()]]
 
-	window = sg.Window('Generate Bullets', layout)    
-	event, values = window.read()    
+	window = sg.Window('Generate Bullets', layout)
+
+	while True:
+		event, values = window.read()
+
+		if event in ('Cancel', None):
+			break
+
+		if event == 'Submit':
+			try:
+				IDs_input = values[0]
+				IDs = IDs_input.strip().split('\n')
+
+				for ID in IDs:
+					# checks ID is 6 digits
+					if len(ID) == 6:
+						l.info(f'-> editing {ID}')
+						cms.edit(ID)
+						t.sleep(1)
+						cms.bullets()
+						t.sleep(1)
+						# cms.save()
+						# t.sleep(1)
+						sg.popup('Generated bullets for IDs:', IDs_input)
+					else:
+						l.info('- ID was not 6 digits long')
+						sg.popup('ID needs to be 6 digits long')
+	
+			except Exception as e:
+				l.error(e)
+				sg.popup('An error occured, please see log file.')
+
 	window.close()
 
-	IDs_input = values[0]
-	IDs = IDs_input.strip().split('\n')
 
-	try:
-		cms = CMSBot()
-		generate_bullets(cms, IDs)
-		sg.popup('Generated bullets for IDs:', IDs_input)
-	except Exception as e:
-		l.error(e)
-		sg.popup('An error occured, please see log file.')
-	finally:
-		cms.b.quit()
-		l.info('- exited browser correctly')
+######################## Change Metadata ############################
 
-
-######################## Live Date ############################
-
-def change_metadata(cms, IDs):
-	pass
-
-def change_metadata_window():
+def change_metadata_window(cms):
 
 	sg.theme('DarkGreen') 
-	layout = [[sg.Text('Paste a column of IDs below:')],
-										[sg.InputText()],
-										[sg.InputText()],
-										[sg.Submit(), sg.Cancel()]]
+	layout = [
+		[sg.Text('Paste a column of IDs and select the status of entries')],
+		[sg.Text('IDs'), sg.InputText()],
+		[sg.Frame(layout=[
+		[sg.Radio('Shortlisted', 'RADIO1'), sg.Radio('Entrant', 'RADIO2')]], title='Status',title_color='green', relief=sg.RELIEF_SUNKEN, tooltip='Use these to set flags')],
+		[sg.Submit(), sg.Cancel()]
+	]
 
 	window = sg.Window('Change Metadata', layout)    
-	event, values = window.read()    
+	
+	while True:
+		event, values = window.read()
+
+		if event in ('Cancel', None):
+			break
+
+		if event == 'Submit':
+			IDs_input = values[0]
+			IDs = IDs_input.strip().split('\n')
+
+			try:
+				IDs_input = values[0]
+				IDs = IDs_input.strip().split('\n')
+
+				for ID in IDs:
+					# checks ID is 6 digits
+					if len(ID) == 6:
+						l.info(f'-> editing {ID}')
+						cms.edit(ID)
+						t.sleep(1)
+
+############## [cms.dates() if x > 1 else pass]
+
+############## [cms.additional_info() if RADIO1,  elif RADIO2..]
+
+						# t.sleep(1)
+						# cms.save()
+						# t.sleep(1)
+						sg.popup('Changed metadata for IDs:', IDs_input)
+					else:
+						l.info('- ID was not 6 digits long')
+						sg.popup('ID needs to be 6 digits long')
+				
+			except Exception as e:
+				l.error(e)
+				sg.popup('An error occured, please see log file.')
+
 	window.close()
 
-	IDs_input = values[0]
-	IDs = IDs_input.strip().split('\n')
-
-	try:
-		# change_metadata(cms, IDs)
-		sg.popup('Changed metadata for IDs:', text_input1)
-	except Exception as e:
-		l.error(e)
-		sg.popup('An error occured, please see log file.')
-	finally:
-		cms.b.quit()
-		l.info('- exited browser correctly')
+######################## Main Window ############################
 
 def main():
-	generate_bullets_window()
-	change_metadata_window()
+
+	sg.theme('DarkBlue') 
+
+	layout = [
+		[sg.Text('Choose a script: ')],
+		[sg.Button('Bullets'), sg.Button('Metadata')],
+		[sg.Exit()]
+	]
+
+	window = sg.Window('CMS Bot', layout)
+
+	cms = CMSBot()
+
+	while True:
+		event, values = window.read()
+		if event in ('Exit', None):
+			break
+
+		if event == 'Bullets':
+			try:
+				generate_bullets_window(cms)
+			except Exception as e:
+				l.error(e)
+
+		if event == 'Metadata':
+			try:
+				change_metadata_window(cms)
+			except Exception as e:
+				l.error(e)
+
+	cms.b.quit()
+	l.info('- exited browser correctly')
+
+	window.close()
 
 if __name__ == '__main__':
 	main()
