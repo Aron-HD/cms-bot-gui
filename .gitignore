@@ -2,7 +2,5 @@
 /_archive
 /build
 /icon
-generate_bullets.spec
-Pipfile
-Pipfile.lock
 *.log
+*.spec

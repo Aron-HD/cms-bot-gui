@@ -10,14 +10,14 @@ Taking the CMSBot class from `cms_edit.py` / `cms_batch_edit.py` from CMS-bot re
 - our cms can only be accessed through vpn
 
 **To do:**
-    - ~~make a virtual environment with venv / pipenv~~
-    - ~~make requirements file~~
-    - ~~use py installer~~
-    - ~~add an icon~~
-    - ~~make exe include chromedriver.exe~~
-    - validate IDs before opening CMSBot()
-    - metadata function
-    - additional information: radio button / dropbox for Shortlisted or Entrant
-    - Publication date
-    - Live date
-    - add LICENCE file
+- ~~make a virtual environment with venv / pipenv~~
+- ~~make requirements file~~
+- ~~use py installer~~
+- ~~add an icon~~
+- ~~make exe include chromedriver.exe~~
+- validate IDs before opening CMSBot()
+- metadata function
+- additional information: radio button / dropbox for Shortlisted or Entrant
+- Publication date
+- Live date
+- add LICENCE file

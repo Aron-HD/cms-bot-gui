@@ -21,7 +21,7 @@ def setup_custom_logger(name):
     l.addHandler(sh)
     return l
 
-l = setup_custom_logger('generate_bullets.log')
+l = setup_custom_logger(__file__ + '.log')
 
 # set relative path for chromedriver executable file, otherwise its not on other user's system PATH
 def resource_path(relative_path):
