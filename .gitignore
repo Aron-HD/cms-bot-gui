@@ -1,0 +1,8 @@
+/__pycache__
+/_archive
+/build
+/icon
+generate_bullets.spec
+Pipfile
+Pipfile.lock
+*.log
