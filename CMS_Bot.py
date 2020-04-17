@@ -21,7 +21,7 @@ def setup_custom_logger(name):
     l.addHandler(sh)
     return l
 
-l = setup_custom_logger(__file__ + '.log')
+l = setup_custom_logger(__file__.split('.')[0] + '.log')
 
 # set relative path for chromedriver executable file, otherwise its not on other user's system PATH
 def resource_path(relative_path):
@@ -43,6 +43,7 @@ class CMSBot:
 		b.get(url)
 		l.info(f"requested url: '{url}'")
 		b.implicitly_wait(5)
+		l.info(f'-> editing {ID}')
 		g = b.find_element_by_name('LegacyId')
 		g.clear()
 		g.send_keys(ID)
@@ -82,19 +83,16 @@ class CMSBot:
 
 ##################### Generate Bullets ########################
 
-def generate_bullets_window(cms):
-	'''
-	# INSTRUCTIONS
-	- all you do is paste a column of IDs into the input field
-	- the script will automatically generate the IDs in the cms
-	- our cms can only be accessed through vpn
-	'''
+def generate_bullets_window():
+
+	cms = CMSBot()
+
 	sg.theme('DarkAmber') 
 	layout = [[sg.Text('Paste a column of IDs below:')],
 										[sg.InputText()],
 										[sg.Submit(), sg.Cancel()]]
 
-	window = sg.Window('Generate Bullets', layout)
+	window = sg.Window('Generate Bullets', layout, default_element_size=(40, 1))
 
 	while True:
 		event, values = window.read()
@@ -110,39 +108,49 @@ def generate_bullets_window(cms):
 				for ID in IDs:
 					# checks ID is 6 digits
 					if len(ID) == 6:
-						l.info(f'-> editing {ID}')
+						
 						cms.edit(ID)
 						t.sleep(1)
 						cms.bullets()
 						t.sleep(1)
 						# cms.save()
 						# t.sleep(1)
-						sg.popup('Generated bullets for IDs:', IDs_input)
+						
 					else:
 						l.info('- ID was not 6 digits long')
-						sg.popup('ID needs to be 6 digits long')
-	
+						sg.popup('IDs need to be 6 digits long')
+
+				sg.popup('Generated bullets for IDs:', IDs_input)
 			except Exception as e:
 				l.error(e)
 				sg.popup('An error occured, please see log file.')
 
+	cms.b.quit()
+	l.info('- exited browser correctly')
 	window.close()
 
 
 ######################## Change Metadata ############################
 
-def change_metadata_window(cms):
+def change_metadata_window():
 
-	sg.theme('DarkGreen') 
+	cms = CMSBot()
+
+	sg.theme('DarkAmber') 
 	layout = [
+		[sg.Output(size=(42,18))],
 		[sg.Text('Paste a column of IDs and select the status of entries')],
-		[sg.Text('IDs'), sg.InputText()],
+		[sg.Text('IDs'), sg.InputText(focus=True)],
 		[sg.Frame(layout=[
-		[sg.Radio('Shortlisted', 'RADIO1'), sg.Radio('Entrant', 'RADIO2')]], title='Status',title_color='green', relief=sg.RELIEF_SUNKEN, tooltip='Use these to set flags')],
+			[sg.Text('ddmmyyyy'), sg.InputText()]
+		], title='Live Date', title_color='white')],
+		[sg.Frame(layout=[
+			[sg.Radio('Shortlisted', 'R', key='R1', default=False), sg.Radio('Entrant', 'R', key='R2', default=False)]
+		], title='Status', title_color='white', relief=sg.RELIEF_SUNKEN, tooltip="Select whether to add 'Shortlisted' or 'Entrant' to Additional Information field.")],
 		[sg.Submit(), sg.Cancel()]
 	]
 
-	window = sg.Window('Change Metadata', layout)    
+	window = sg.Window('Change Metadata', layout, default_element_size=(40, 1))    
 	
 	while True:
 		event, values = window.read()
@@ -151,43 +159,55 @@ def change_metadata_window(cms):
 			break
 
 		if event == 'Submit':
-			IDs_input = values[0]
-			IDs = IDs_input.strip().split('\n')
-
+			print('Changing metadata for IDs:\n' + values[0])
+			t.sleep(1)
 			try:
 				IDs_input = values[0]
 				IDs = IDs_input.strip().split('\n')
+				date = values[1]
+				# status = values[2]
 
 				for ID in IDs:
 					# checks ID is 6 digits
 					if len(ID) == 6:
-						l.info(f'-> editing {ID}')
 						cms.edit(ID)
-						t.sleep(1)
+						if str(date) == '':
+							pass
+						elif len(str(date)) == 8:
+							cms.dates(date)
+						else:
+							print('date must be 8 digits in ddmmyyy format')
+						# print(status)
 
-############## [cms.dates() if x > 1 else pass]
 
 ############## [cms.additional_info() if RADIO1,  elif RADIO2..]
 
 						# t.sleep(1)
-						# cms.save()
-						# t.sleep(1)
-						sg.popup('Changed metadata for IDs:', IDs_input)
-					else:
-						l.info('- ID was not 6 digits long')
-						sg.popup('ID needs to be 6 digits long')
-				
+						cms.save()
+						t.sleep(1)
+						
+					elif len(ID) < 6:
+						print('- ID was not 6 digits long')
+
 			except Exception as e:
 				l.error(e)
 				sg.popup('An error occured, please see log file.')
 
+	cms.b.quit()
+	l.info('- exited browser correctly')
 	window.close()
 
 ######################## Main Window ############################
 
 def main():
+	'''
+	# INSTRUCTIONS
+	- all you do is paste a column of IDs into the input field
+	- the script will automatically generate the IDs in the cms
+	- our cms can only be accessed through vpn
+	'''
 
-	sg.theme('DarkBlue') 
+	sg.theme('DarkAmber') 
 
 	layout = [
 		[sg.Text('Choose a script: ')],
@@ -195,29 +215,27 @@ def main():
 		[sg.Exit()]
 	]
 
-	window = sg.Window('CMS Bot', layout)
-
-	cms = CMSBot()
+	window = sg.Window('CMS Bot', layout, default_element_size=(40, 1))
 
 	while True:
 		event, values = window.read()
+		
 		if event in ('Exit', None):
 			break
 
 		if event == 'Bullets':
 			try:
-				generate_bullets_window(cms)
+				generate_bullets_window()
 			except Exception as e:
 				l.error(e)
+				sg.popup('An error occured, please see log file.')
 
 		if event == 'Metadata':
 			try:
-				change_metadata_window(cms)
+				change_metadata_window()
 			except Exception as e:
 				l.error(e)
-
-	cms.b.quit()
-	l.info('- exited browser correctly')
+				sg.popup('An error occured, please see log file.')
 
 	window.close()
 
