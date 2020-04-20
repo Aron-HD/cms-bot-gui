@@ -25,5 +25,13 @@ Taking the CMSBot class from `cms_edit.py` / `cms_batch_edit.py` from CMS-bot re
 ### Screenshots
 
 ![cms-bot-bullets](https://user-images.githubusercontent.com/60329603/79757653-4b0dc680-8314-11ea-8166-80084a982523.JPG)
+
+*CMS_Bot Generate Bullets window working with Selenium Chrome driver*
+
 ![cms-bot-metadata1](https://user-images.githubusercontent.com/60329603/79757671-4fd27a80-8314-11ea-8895-8a4301e7bd0c.JPG)
+
+*Metadata window before entering ID/s*
+
 ![cms-bot-metadata2](https://user-images.githubusercontent.com/60329603/79757673-506b1100-8314-11ea-95dd-f3892f4deed3.JPG)
+
+*Metadata window when ID/s entered*
