@@ -113,17 +113,17 @@ def generate_bullets_window():
 						t.sleep(1)
 						cms.bullets()
 						t.sleep(1)
-						# cms.save()
-						# t.sleep(1)
+						cms.save()
+						t.sleep(1)
 						
 					else:
 						l.info('- ID was not 6 digits long')
-						sg.popup('IDs need to be 6 digits long')
+						sg.popup('IDs need to be 6 digits long', keep_on_top=True)
 
 				sg.popup('Generated bullets for IDs:', IDs_input)
 			except Exception as e:
 				l.error(e)
-				sg.popup('An error occured, please see log file.')
+				sg.popup('An error occured, please see log file.', keep_on_top=True)
 
 	cms.b.quit()
 	l.info('- exited browser correctly')
@@ -191,7 +191,7 @@ def change_metadata_window():
 
 			except Exception as e:
 				l.error(e)
-				sg.popup('An error occured, please see log file.')
+				sg.popup('An error occured, please see log file.', keep_on_top=True)
 
 	cms.b.quit()
 	l.info('- exited browser correctly')
@@ -228,14 +228,14 @@ def main():
 				generate_bullets_window()
 			except Exception as e:
 				l.error(e)
-				sg.popup('An error occured, please see log file.')
+				sg.popup('An error occured, please see log file.', keep_on_top=True)
 
 		if event == 'Metadata':
 			try:
 				change_metadata_window()
 			except Exception as e:
 				l.error(e)
-				sg.popup('An error occured, please see log file.')
+				sg.popup('An error occured, please see log file.', keep_on_top=True)
 
 	window.close()
 
