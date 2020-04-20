@@ -22,6 +22,8 @@ def setup_custom_logger(name):
     return l
 
 l = setup_custom_logger(__file__.split('.')[0] + '.log')
+# location of icon file for windows
+icon_file = 'icon/wave.ico'
 
 # set relative path for chromedriver executable file, otherwise its not on other user's system PATH
 def resource_path(relative_path):
@@ -87,13 +89,15 @@ def generate_bullets_window():
 
 	cms = CMSBot()
 
-	sg.theme('DarkAmber') 
 	layout = [[sg.Text('Paste a column of IDs below:')],
 										[sg.InputText()],
 										[sg.Submit(), sg.Cancel()]]
 
-	window = sg.Window('Generate Bullets', layout, default_element_size=(40, 1))
-
+	window = sg.Window('Generate Bullets',
+									layout,
+									icon=icon_file,
+									keep_on_top=True,
+									grab_anywhere=True) 
 	while True:
 		event, values = window.read()
 
@@ -135,22 +139,29 @@ def generate_bullets_window():
 def change_metadata_window():
 
 	cms = CMSBot()
-
-	sg.theme('DarkAmber') 
+ 
 	layout = [
 		[sg.Output(size=(42,18))],
 		[sg.Text('Paste a column of IDs and select the status of entries')],
 		[sg.Text('IDs'), sg.InputText(focus=True)],
+		[sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText()]],
+			title='Live Date',
+			title_color='white')],
 		[sg.Frame(layout=[
-			[sg.Text('ddmmyyyy'), sg.InputText()]
-		], title='Live Date', title_color='white')],
-		[sg.Frame(layout=[
-			[sg.Radio('Shortlisted', 'R', key='R1', default=False), sg.Radio('Entrant', 'R', key='R2', default=False)]
-		], title='Status', title_color='white', relief=sg.RELIEF_SUNKEN, tooltip="Select whether to add 'Shortlisted' or 'Entrant' to Additional Information field.")],
+			[sg.Radio('Shortlisted', 'R', key='R1', default=False),
+			sg.Radio('Entrant', 'R', key='R2', default=False)]],
+			title='Status',
+			title_color='white',
+			relief=sg.RELIEF_SUNKEN,
+			tooltip="Select whether to add 'Shortlisted' or 'Entrant' to Additional Information field.")], 
 		[sg.Submit(), sg.Cancel()]
 	]
 
-	window = sg.Window('Change Metadata', layout, default_element_size=(40, 1))    
+	window = sg.Window('Change Metadata',
+									layout,
+									icon=icon_file,
+									keep_on_top=True,
+									grab_anywhere=True)    
 	
 	while True:
 		event, values = window.read()
@@ -165,26 +176,29 @@ def change_metadata_window():
 				IDs_input = values[0]
 				IDs = IDs_input.strip().split('\n')
 				date = values[1]
-				# status = values[2]
 
 				for ID in IDs:
 					# checks ID is 6 digits
 					if len(ID) == 6:
 						cms.edit(ID)
+
+						# if a Radio button is selected, append string to additional info field
+						if values['R1'] == True:
+							cms.additional_info('Shortlisted')
+						elif values['R2'] == True:
+							cms.additional_info('Entrant')
+
+						# if valid date in dd/mm/yyyy format (8 digits), change date, otherwise pass or print message
 						if str(date) == '':
 							pass
 						elif len(str(date)) == 8:
 							cms.dates(date)
 						else:
 							print('date must be 8 digits in ddmmyyy format')
-						# print(status)
-
-
-############## [cms.additional_info() if RADIO1,  elif RADIO2..]
 
 						# t.sleep(1)
-						cms.save()
-						t.sleep(1)
+						# cms.save()
+						# t.sleep(1)
 						
 					elif len(ID) < 6:
 						print('- ID was not 6 digits long')
@@ -206,16 +220,23 @@ def main():
 	- the script will automatically generate the IDs in the cms
 	- our cms can only be accessed through vpn
 	'''
-
-	sg.theme('DarkAmber') 
+	# theme_previewer()
+	sg.theme('DarkTeal2') 
 
 	layout = [
-		[sg.Text('Choose a script: ')],
-		[sg.Button('Bullets'), sg.Button('Metadata')],
+		[sg.Frame(
+			layout=[[sg.Button('Bullets'), sg.Button('Metadata')]],
+			title='Function',
+			title_color='white')],
 		[sg.Exit()]
 	]
 
-	window = sg.Window('CMS Bot', layout, default_element_size=(40, 1))
+	window = sg.Window('CMS Bot',
+							layout,
+							icon=icon_file,
+							resizable=True,
+							keep_on_top=True,
+							grab_anywhere=True)
 
 	while True:
 		event, values = window.read()
