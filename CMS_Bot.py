@@ -61,6 +61,34 @@ class CMSBot:
 		g.send_keys(Keys.RETURN)
 		t.sleep(1)
 
+	def batch_actions(self, code, id_from, id_to):
+		b = self.b
+		url = 'http://newcms.warc.com/content/batch-actions'
+		b.get(url)
+		l.info('Requested url: ' + url)
+		b.implicitly_wait(10)
+
+		l.info(f'editing {code}, {id_from}-{id_to}')
+		# first id
+		IdFrom = b.find_element_by_id('IdFrom')
+		IdFrom.clear()
+		IdFrom.send_keys(id_from)
+		l.info(id_from)
+		# last id
+		IdTo = b.find_element_by_id('IdTo')
+		IdTo.clear()
+		IdTo.send_keys(id_to)
+		l.info(id_to)
+		# selects correct award source, though this isn't strictly necessary
+		b.find_element_by_id('Source').click()
+		b.find_element_by_xpath(f'//option[@value="{code}"]').click()
+		l.info(f'selected {code}')
+		
+		input('press key to continue: ')
+		# clicks view
+		b.find_element_by_xpath('//input[@type="submit"]').click()
+		l.info('clicked [View]')
+
 	def save(self):
 		b = self.b
 		t.sleep(1)
@@ -197,7 +225,7 @@ def change_metadata_window():
 					cms.edit(ID)
 
 					# if a Radio button is selected, append string to additional info field
-					if values['R1'] == True:
+					if values['R1'] == True: # get('R1')
 						cms.additional_info('Shortlisted')
 					elif values['R2'] == True:
 						cms.additional_info('Entrant')
@@ -219,6 +247,56 @@ def change_metadata_window():
 
 	cms.b.quit()
 	l.info('- exited browser correctly')
+	window.close()
+
+###################### Tick IDs Window ##########################
+	
+def tick_ids_window():
+
+	# cms = CMSBot()
+	codes = {
+		'WARC Awards': 'WARC-AWARDS',
+		'MENA Prize': 'Warc-Prize-Mena',
+		'Asia Prize': 'Warc-Prize-Asia',
+		'Media Awards': 'Warc-Awards-Media'
+	}
+
+	layout = [
+		[sg.Output(size=(42,18))],
+		*[[sg.Radio(x, 'Award')] for x in codes.keys()], # values[0,1,2,3]
+		[sg.Text('Paste a column of IDs below:')],
+		[sg.InputText(do_not_clear=False)], # values[4]
+		[sg.Submit(), sg.Cancel()]
+	]
+
+	window = sg.Window('Batch Actions',
+								layout,
+								icon=icon_file,
+								keep_on_top=True,
+								grab_anywhere=True)
+
+	while True:
+		event, values = window.read()
+
+		if event in ('Cancel', None):
+			break
+
+		if event == 'Submit':
+			IDs_input = values[4]
+			raw_IDs = IDs_input.strip().split('\n')
+			# converts to integers for min/max values and notifies of any strings not added
+			IDs = [int(x) if len(x) == 6 else print(x, 'ID not valid 6 digits') for x in raw_IDs]
+
+			id_from = min(IDs)
+			id_to = max(IDs)
+
+			print(values[0], values[1], values[2], values[3])
+
+			IDs = []
+			
+
+	# cms.b.quit()
+	# l.info('- exited browser correctly')
 	window.close()
 
 ######################## Main Window ############################
@@ -244,10 +322,10 @@ def main():
 			layout=[[sg.Button('Bullets'), sg.Button('Metadata'), sg.Button('Videos')]]
 		)],
 		[sg.Frame(
-			title='Batch Edit Functions',
+			title='Batch Actions',
 			title_color='white',
 			relief=sg.RELIEF_SUNKEN,
-			layout=[[sg.Button('Add Content'), sg.Button('Set Live')]]
+			layout=[[sg.Button('Tick IDs')]]
 		)],
 		[sg.Exit()]
 	]
@@ -272,10 +350,9 @@ def main():
 				change_metadata_window()
 			if event == 'Videos':
 				pass
-			if event == 'Set Live':
-				pass
-			if event == 'Add Content':
-				pass
+			if event == 'Tick IDs':
+				tick_ids_window()
+
 
 		except Exception as e:
 			l.error(e)
