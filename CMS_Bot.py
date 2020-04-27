@@ -24,8 +24,7 @@ def setup_custom_logger(name):
     return l
 
 logdir = Path.cwd() / 'logs'
-if not Path(logdir).is_dir():
-	logdir.mkdir()
+Path(logdir).mkdir(exist_ok=True)
 
 fn = __file__.split('\\')[-1].split('.')[0] # filename minus .py
 logname = 'logs/%Y-%m-%d - %H-%M-%S - ' + f'{fn}.log' # date formatted log
@@ -254,6 +253,7 @@ def change_metadata_window():
 def tick_ids_window():
 
 	# cms = CMSBot()
+	
 	codes = {
 		'WARC Awards': 'WARC-AWARDS',
 		'MENA Prize': 'Warc-Prize-Mena',
