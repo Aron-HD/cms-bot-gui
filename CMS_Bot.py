@@ -60,33 +60,46 @@ class CMSBot:
 		g.send_keys(Keys.RETURN)
 		t.sleep(1)
 
-	def batch_actions(self, code, id_from, id_to):
+	def batch_actions(self, code, id_from, id_to, date):
 		b = self.b
 		url = 'http://newcms.warc.com/content/batch-actions'
 		b.get(url)
 		l.info('Requested url: ' + url)
 		b.implicitly_wait(10)
 
-		l.info(f'editing {code}, {id_from}-{id_to}')
-		# first id
-		IdFrom = b.find_element_by_id('IdFrom')
-		IdFrom.clear()
-		IdFrom.send_keys(id_from)
-		l.info(id_from)
-		# last id
-		IdTo = b.find_element_by_id('IdTo')
-		IdTo.clear()
-		IdTo.send_keys(id_to)
-		l.info(id_to)
+		l.info(f'editing ID Range: {id_from}-{id_to} in {code}')
 		# selects correct award source, though this isn't strictly necessary
 		b.find_element_by_id('Source').click()
 		b.find_element_by_xpath(f'//option[@value="{code}"]').click()
 		l.info(f'selected {code}')
-		
-		input('press key to continue: ')
+
+		for k, v in [('IdFrom', id_from), ('IdTo', id_to)]: # first id and last id
+			if v is not None:
+				IdRng = b.find_element_by_id(k)
+				IdRng.clear()
+				IdRng.send_keys(v)
+				l.info(f'entered: {v} into {k}')
+
+			elif v is None:
+				print('An ID was invalid')
+
+		# selects publication date range if date is valid
+		if len(date) == 8:
+			for i in ['DateFrom', 'DateTo']: # ids of publication date range elements
+				DtRng = b.find_element_by_id(i)
+				DtRng.clear()
+				DtRng.send_keys(date)
+				l.info(f'entered: {date} into {i}')
+		else:
+			pass
+
+		t.sleep(2)
 		# clicks view
 		b.find_element_by_xpath('//input[@type="submit"]').click()
 		l.info('clicked [View]')
+
+	def tick():
+		pass
 
 	def save(self):
 		b = self.b
@@ -252,20 +265,25 @@ def change_metadata_window():
 	
 def tick_ids_window():
 
-	# cms = CMSBot()
+	cms = CMSBot()
 	
 	codes = {
 		'WARC Awards': 'WARC-AWARDS',
-		'MENA Prize': 'Warc-Prize-Mena',
+		'MENA Prize': 'WARC-PRIZE-MENA',
 		'Asia Prize': 'Warc-Prize-Asia',
 		'Media Awards': 'Warc-Awards-Media'
 	}
 
 	layout = [
 		[sg.Output(size=(42,18))],
-		*[[sg.Radio(x, 'Award')] for x in codes.keys()], # values[0,1,2,3]
+		[sg.Frame(layout=[*[[sg.Radio(x, 'Award', key=x)] for x in codes.keys()]], # .upper().split(' ')[0]
+			title='Award',
+			title_color='white')], 
+		[sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText(key='DATE')]], # values[4]
+			title='Live Date',
+			title_color='white')], 
 		[sg.Text('Paste a column of IDs below:')],
-		[sg.InputText(do_not_clear=False)], # values[4]
+		[sg.InputText(do_not_clear=False, key='IDS')], # values[5]
 		[sg.Submit(), sg.Cancel()]
 	]
 
@@ -282,21 +300,40 @@ def tick_ids_window():
 			break
 
 		if event == 'Submit':
-			IDs_input = values[4]
-			raw_IDs = IDs_input.strip().split('\n')
-			# converts to integers for min/max values and notifies of any strings not added
-			IDs = [int(x) if len(x) == 6 else print(x, 'ID not valid 6 digits') for x in raw_IDs]
+			date = values['DATE']
+			IDs_input = values['IDS']
 
-			id_from = min(IDs)
-			id_to = max(IDs)
+			if not IDs_input:
+				print('No IDs entered')
+			else:
+				raw_IDs = IDs_input.strip().split('\n')
+				
+				# converts to integers for min/max values and notifies of any strings not added
+				IDs = [int(x) if len(x) == 6 else print(x, 'ID not valid 6 digits') for x in raw_IDs]
+				id_from = min(IDs)
+				id_to = max(IDs)
+				
+				# gets
+				print('Select award')
+				for x in codes.keys():
 
-			print(values[0], values[1], values[2], values[3])
+					if values[x] == True:
+						code = codes[x]
+						print(IDs)
+						print('Code:', code)
 
-			IDs = []
-			
+						if len(date) == 8:
+							print('Date:', date)
+						
+						try:
+							cms.batch_actions(code, id_from, id_to, date)
+						except Exception:
+							l.exception('Exception:')
+							sg.popup('An error occured, please see log file.', keep_on_top=True)
+							continue		
 
-	# cms.b.quit()
-	# l.info('- exited browser correctly')
+	cms.b.quit()
+	l.info('- exited browser correctly')
 	window.close()
 
 ######################## Main Window ############################
@@ -312,7 +349,7 @@ def main():
 	- our cms can only be accessed through vpn
 	'''
 	# theme_previewer()
-	sg.theme('DarkTeal2') 
+	sg.theme('DarkPurple4') 
 
 	layout = [
 		[sg.Frame(
@@ -353,9 +390,8 @@ def main():
 			if event == 'Tick IDs':
 				tick_ids_window()
 
-
-		except Exception as e:
-			l.error(e)
+		except Exception:
+			l.exception('Exception:')
 			sg.popup('An error occured, please see log file.', keep_on_top=True)
 
 	window.close()
