@@ -15,13 +15,16 @@ Taking the CMSBot class from `cms_edit.py` / `cms_batch_edit.py` from CMS-bot re
 - ~~use py installer~~
 - ~~add an icon~~
 - ~~make exe include chromedriver.exe~~
-- validate IDs before opening CMSBot()
-- clear IDs when finished
+- ~~validate IDs before opening CMSBot()~~
+- ~~clear IDs when finished~~
 - check bullet summary is valid and button clickable
 - ~~metadata function~~
 - ~~additional information: radio button / dropbox for Shortlisted or Entrant~~
 - ~~Publication date~~
 - ~~Live date~~
+- ~~batch actions function~~
+- tick IDs, with second loop for not present
+- update screenshots
 - add LICENCE file
 
 ### Screenshots
