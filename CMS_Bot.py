@@ -303,7 +303,7 @@ def tick_ids_window():
 			date = values['DATE']
 			IDs_input = values['IDS']
 
-			if not IDs_input:
+			if not IDs_input: # if no IDs are entered and list of values is blank
 				print('No IDs entered')
 			else:
 				raw_IDs = IDs_input.strip().split('\n')
