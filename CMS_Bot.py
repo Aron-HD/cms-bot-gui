@@ -4,6 +4,7 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import NoSuchElementException
 chrome_options = Options()
 # chrome_options.add_argument("--start-maximized")
 # chrome_options.add_argument('--headless')
@@ -98,8 +99,27 @@ class CMSBot:
 		b.find_element_by_xpath('//input[@type="submit"]').click()
 		l.info('clicked [View]')
 
-	def tick():
-		pass
+	def tick(self, ids, remainder_IDs):
+		b = self.b
+		confirmed_IDs = []
+
+		l.info('checking IDs are listed')
+		# match IDs to see if they exist before ticking
+		for i in ids:
+			try:
+				b.find_element_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]")
+				confirmed_IDs.append(i)
+			except NoSuchElementException:
+				remainder_IDs.append(int(i))
+				l.error(
+					'no such element: Unable to locate element: {"method":"xpath","selector":"//tbody/tr/td[contains(text(), '
+																	+ f"'{i}'" + '}' + f'appended {i} to remaining_IDs list')
+		for i in confirmed_IDs:
+			try:
+				tickbox = b.find_elements_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]/../td")[0].click()
+				l.info(f'{i} ticked')
+			except Exception as e:
+				l.info(e)
 
 	def save(self):
 		b = self.b
@@ -250,9 +270,9 @@ def change_metadata_window():
 					else:
 						print('date must be 8 digits in ddmmyyy format')
 
-					# t.sleep(1)
-					# cms.save()
-					# t.sleep(1)
+					t.sleep(1)
+					cms.save()
+					t.sleep(1)
 					
 				elif len(ID) < 6:
 					print('- ID was not 6 digits long')
@@ -325,8 +345,20 @@ def tick_ids_window():
 						if len(date) == 8:
 							print('Date:', date)
 						
+						remainder_IDs = []
 						try:
-							cms.batch_actions(code, id_from, id_to, date)
+							if len(remainder_IDs) < 1:
+								cms.batch_actions(code, id_from, id_to, date)
+								cms.tick(IDs, remainder_IDs)
+							# needs to pause before doing this
+							if len(remainder_IDs) > 0:
+								print(str(len(remainder_IDs)) + f' IDs remaining: {remainder_IDs}')
+								id_from = min(remainder_IDs)
+								id_to = max(remainder_IDs)
+								# print(f'editing {code}, {id_from}-{id_to}') 
+								# cms.batch_actions(code, id_from, id_to, date) 
+								# cms.tick(remainder_IDs, [])
+							
 						except Exception:
 							l.exception('Exception:')
 							sg.popup('An error occured, please see log file.', keep_on_top=True)
