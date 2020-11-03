@@ -1,10 +1,11 @@
-import os, sys, time as t, logging as log, PySimpleGUI as sg
+import os, sys, time as t, logging as log, PySimpleGUI as sg, pandas as pd
 from pathlib import Path
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
 chrome_options = Options()
 # chrome_options.add_argument("--start-maximized")
 # chrome_options.add_argument('--headless')
@@ -119,14 +120,124 @@ class CMSBot:
 				tickbox = b.find_elements_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]/../td")[0].click()
 				l.info(f'{i} ticked')
 			except Exception as e:
-				l.info(e)
+				l.error(e)
+
+##################################### Videos functions #######################################
+
+	def remove_video(self):
+		'''
+		removes any existing videos, with check to see if button is visible.
+		currently the cms doesn't save changes.
+		'''
+		b = self.b
+		b.find_element_by_link_text('Videos').click()
+		remove = b.find_elements_by_xpath('//input[@value="Remove"]')
+		for rmv in remove:
+			if click_if_available(rmv):
+				l.info('removed video')
+			else:
+				pass
+
+	def replace_video(self, vnum, vtype, vlink):
+		'''
+		takes row from 'readcsvf' and replaces existing video metadata in the cms.
+		
+		'''
+		b = self.b
+		if int(vlink):
+			
+			if 'v01' in vnum:
+				b.find_element_by_link_text('Videos').click()
+				l.info('clicked accordion [ Videos ]')
+
+			for i, n in enumerate(['v01','v02','v03']):	
+				if n in vnum:
+					l.info(f'editing: {vnum}')
+					link = b.find_element_by_id(f'VideoViewModels_{i}__VideoLink')
+					link.clear()
+					l.info('cleared Link field')
+					link.send_keys(vlink)
+					l.info(f'Sent keys: {vlink}')
+					
+					if 'creative' in vtype.lower():
+						btn1 = b.find_element_by_id(f'VideoViewModels_{i}__VideoType')
+						click_if_available(btn1)
+						l.info("Clicked dropdown [ Type ]")
+						t.sleep(0.5)
+						btn2 = b.find_element_by_xpath(
+					f'//select[@id="VideoViewModels_{i}__VideoType"]//option[@value="Creative"]')
+						click_if_available(btn2)
+						l.info("Selected 'Creative'")
+						t.sleep(0.5)
+					else:
+						pass
+		else:
+			sg.popup('vlink not integer',
+				keep_on_top=True)
+			l.info('vlink not integer')
+
+	def add_video(self, vnum, vtype, vlink):
+		'''takes row from 'readcsvf' and adds new videos into cms.'''
+		b = self.b
+
+		# scroll functionality to get elements in view
+		def scroll(element):
+			actions = ActionChains(b)
+			actions.move_to_element(element).perform()
+			l.info('scrolled to element')
+
+		def add_button():
+			btn = b.find_element_by_id('add-video-button')
+			click_if_available(btn)
+			scroll(btn)
+			l.info('clicked [Add]')
+		
+		# get article title from metadata to reuse for video names
+		article_title = b.find_element_by_id('Title').get_attribute('value')
+		l.info('article title - ' + article_title)
+
+		if int(vlink):
+			if 'v01' in vnum:
+				b.find_element_by_link_text('Videos').click()
+				l.info('clicked accordion [ Videos ]')
+
+			for i, n in enumerate(['v01','v02','v03']):
+				if n in vnum:
+					l.info(vnum)
+					t.sleep(1)
+					add_button()
+
+					link = b.find_element_by_id(f'AddedVideo{i}_VideoLink')
+					link.clear()
+					link.send_keys(vlink)
+					l.info(f'link - {vlink}')
+					title = b.find_element_by_id(f'AddedVideo{i}_VideoTitle').send_keys(article_title)
+					l.info('title - ' + article_title)
+					
+					if 'creative' in vtype.lower():
+						vid_type = b.find_element_by_id(f'AddedVideo{i}_VideoType')
+						click_if_available(vid_type)
+						l.info("Clicked dropdown [ Type ]")
+						t.sleep(0.5)
+						select_type = b.find_element_by_xpath(
+							f'//select[@id="AddedVideo{i}_VideoType"]//option[@value="Creative"]')
+						click_if_available(select_type)
+						l.info("Selected 'Creative'")
+						t.sleep(0.5)
+					else:
+						pass
+		else:
+			sg.popup('vlink not integer',
+				keep_on_top=True)
+			l.info('vlink not integer')
 
 	def save(self):
+		'''clicks cms button to save changes'''
 		b = self.b
-		t.sleep(1)
+		t.sleep(0.5)
 		b.find_element_by_xpath('//span[@onclick="onSaveClicked()"]').click()
 		l.info('Saved changes')
-		t.sleep(2)
+		t.sleep(3)
 
 	def bullets(self):
 		b = self.b
@@ -156,7 +267,35 @@ class CMSBot:
 		n = b.find_element_by_id('AdditionalInformation').get_attribute('value')
 		l.info('new info - ' + n)
 
-##################### Generate Bullets ########################
+##################### Additional functions ########################
+
+def click_if_available(button):
+	'''checks if button is enabled and displayed before clicking'''
+	if button.is_enabled() and button.is_displayed():
+		button.click()
+		t.sleep(0.5)
+		l.info('Button clicked')
+		# print('Button clicked')
+	else:
+		l.info('Button not clickable')
+		# print('Button not clickable')
+
+def readcsvf(path_input):
+	'''
+	pass in path, check if it exists and is a valid '.csv' file.
+	- returns dataframe object for iterating over.
+	'''
+	# check if path to file exists 
+	csvf = Path(path_input)
+	if csvf.is_file() and csvf.suffix == '.csv': # read csv if valid
+		df = pd.read_csv(csvf, usecols=['ID', 'Vid', 'Type', 'Link'])
+		return df
+	else:
+		sg.popup('path was not a valid csv file', 
+			keep_on_top=True)
+		l.info('path_input was not a valid csv')
+
+##################### Generate Bullets window ########################
 
 def generate_bullets_window():
 
@@ -208,9 +347,9 @@ def generate_bullets_window():
 	window.close()
 
 
-######################## Change Metadata ############################
+######################## Change Metadata window ############################
 
-def change_metadata_window():
+def metadata_window():
 
 	cms = CMSBot()
  
@@ -281,7 +420,7 @@ def change_metadata_window():
 	l.info('- exited browser correctly')
 	window.close()
 
-###################### Tick IDs Window ##########################
+###################### Batch Actions window ##########################
 	
 def tick_ids_window():
 
@@ -368,6 +507,105 @@ def tick_ids_window():
 	l.info('- exited browser correctly')
 	window.close()
 
+##################### Videos window ########################
+
+def videos_window():
+	'''
+	GUI window with three main functions: adding, replacing or removing videos in the cms. 
+	- takes input for csv file containing relavant data.
+	- checks that video link is integer to avoid pasting string into box.
+	- takes column of IDs as input to remove all videos from each.
+	'''
+	cms = CMSBot()
+	layout = [
+		[sg.Frame(
+			title='Remove videos',
+			title_color='white',
+			layout=[
+				[sg.Text('Paste column of IDs to remove videos:')],
+				[sg.InputText(key='IDS'), sg.Button('Remove')],
+			])],
+		[sg.Frame(
+			title='Edit videos',
+			title_color='white',
+			layout=[
+				[sg.Text('Paste a path to csv:')],
+				[sg.InputText(key='PATH')],
+				[sg.Button('Replace'), sg.Button('Add')]
+			])],
+		[sg.Cancel()]
+	]
+	window = sg.Window('Videos window',
+						layout,
+						icon=icon_file,
+						keep_on_top=True,
+						grab_anywhere=True) 
+	while True:
+		event, values = window.read()
+		path_input = values['PATH']
+		IDs_input = values['IDS']
+
+		if event in ('Cancel', None):
+			break
+
+		if event == 'Replace' or event == 'Add':
+			try:
+				df = readcsvf(path_input)
+				for r in df.itertuples(index=True):
+
+					vn = r.Vid
+					vt = r.Type
+					vl = r.Link
+
+					l.info(f'-> csv row [{r.ID} - {vn} - {vl} - {vt}]')
+
+					if int(vl):
+						if 'v01' in vn:
+							cms.edit(r.ID)
+							if event == 'Replace':
+								cms.replace_video(vnum=vn, vtype=vt, vlink=vl)
+							elif event == 'Add':
+								cms.add_video(vn, vt, vl) 
+						if not 'v01' in vn:
+							if event == 'Replace':
+								cms.replace_video(vn, vt, vl) 
+							elif event == 'Add':
+								cms.add_video(vn, vt, vl) 
+						cms.save()
+					else:
+						sg.popup('ValueError: vlink may not be an integer' + ve, 
+							keep_on_top=True)
+						break
+						l.info('ValueError: vlink not integer')
+
+			except Exception as e:
+				sg.popup(e, 
+					keep_on_top=True)
+				l.error(e)
+		
+		if event == 'Remove':
+			# currently changes don't get saved
+			IDs = IDs_input.strip().split('\n')
+
+			for ID in IDs:
+				# checks ID is 6 digits
+				if len(ID) == 6:
+					try:
+						cms.edit((int(ID)))
+					except ValueError:
+						l.info('- ID was not integer')
+						sg.popup('IDs must be integers', keep_on_top=True)
+					t.sleep(0.5)
+					cms.remove_video()
+					cms.save()
+				else:
+					l.info('- ID was not 6 digits long')
+					sg.popup('IDs need to be 6 digits long', keep_on_top=True)
+
+	cms.b.quit()
+	l.info('- exited chromedriver correctly')
+	window.close()
+
 ######################## Main Window ############################
 
 def main():
@@ -414,11 +652,11 @@ def main():
 				break
 			if event == 'Bullets':
 				pass
-				# generate_bullets_window()
+				# generate_bullets_window() # needs work
 			if event == 'Metadata':
-				change_metadata_window()
+				metadata_window() # needs Award issue field incorporating
 			if event == 'Videos':
-				pass
+				videos_window()
 			if event == 'Tick IDs':
 				tick_ids_window()
 
