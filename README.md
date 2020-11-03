@@ -5,9 +5,13 @@
 Taking the CMSBot class from `cms_edit.py` / `cms_batch_edit.py` from CMS-bot repository and applying a lightweight GUI frontend to it. Choose a script, then paste a list of IDs into the text field and select what you want to happen instead of setting up a csv file to make it more accessible and distributable to the wider team.
 
 ### INSTRUCTIONS
-- all you do is paste a column of IDs into the input field and select options
+- all you do is paste a column of IDs into the input field or specify a path to a csv file and select options
 - the script will automatically interact with the IDs in the cms
 - our cms can only be accessed through vpn
+
+### Updates
+
+- 03.11.2020 - created window and functions for adding, replacing and removing videos to each article.
 
 **To do:**
 - ~~make a virtual environment with venv / pipenv~~
