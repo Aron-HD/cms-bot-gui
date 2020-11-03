@@ -145,7 +145,7 @@ class CMSBot:
 		'''
 		b = self.b
 		if int(vlink):
-			
+
 			if 'v01' in vnum:
 				b.find_element_by_link_text('Videos').click()
 				l.info('clicked accordion [ Videos ]')
@@ -651,13 +651,17 @@ def main():
 			if event in ('Exit', None):
 				break
 			if event == 'Bullets':
+				l.info(event + ' selected')
 				pass
 				# generate_bullets_window() # needs work
 			if event == 'Metadata':
+				l.info(event + ' selected')
 				metadata_window() # needs Award issue field incorporating
 			if event == 'Videos':
+				l.info(event + ' selected')
 				videos_window()
 			if event == 'Tick IDs':
+				l.info(event + ' selected')
 				tick_ids_window()
 
 		except Exception:
