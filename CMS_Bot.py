@@ -303,7 +303,7 @@ def generate_bullets_window():
 
 	layout = [
 		[sg.Text('Paste a column of IDs below:')],
-		[sg.InputText()],
+		[sg.Multiline()],
 		[sg.Submit(), sg.Cancel()]
 	]
 
@@ -356,7 +356,7 @@ def metadata_window():
 	layout = [
 		[sg.Output(size=(42,18))],
 		[sg.Text('Paste a column of IDs and select the status of entries')],
-		[sg.Text('IDs'), sg.InputText(focus=True)],
+		[sg.Text('IDs'), sg.Multiline(focus=True)],
 		[sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText()]],
 			title='Live Date',
 			title_color='white')],
@@ -442,7 +442,7 @@ def tick_ids_window():
 			title='Live Date',
 			title_color='white')], 
 		[sg.Text('Paste a column of IDs below:')],
-		[sg.InputText(do_not_clear=False, key='IDS')], # values[5]
+		[sg.Multiline(do_not_clear=False, key='IDS')], # values[5]
 		[sg.Submit(), sg.Cancel()]
 	]
 
@@ -523,7 +523,7 @@ def videos_window():
 			title_color='white',
 			layout=[
 				[sg.Text('Paste column of IDs to remove videos:')],
-				[sg.InputText(key='IDS'), sg.Button('Remove')],
+				[sg.Multiline(key='IDS'), sg.Button('Remove')],
 			])],
 		[sg.Frame(
 			title='Edit videos',
