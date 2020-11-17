@@ -30,6 +30,8 @@ Taking the CMSBot class from `cms_edit.py` / `cms_batch_edit.py` from CMS-bot re
 - tick IDs, with second loop for not present
 - update screenshots
 - add LICENCE file
+- nest CMSbot under class
+- separate GUI window functions to separate file
 
 ### Screenshots
 
