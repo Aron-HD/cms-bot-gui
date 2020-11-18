@@ -28,8 +28,8 @@ def setup_custom_logger(name):
 logdir = Path.cwd() / 'logs'
 Path(logdir).mkdir(exist_ok=True)
 
-fn = __file__.split('\\')[-1].split('.')[0] # filename minus .py
-logname = 'logs/%Y-%m-%d - %H-%M-%S - ' + f'{fn}.log' # date formatted log
+fn = Path(__file__).with_suffix('.log')
+logname = 'logs/%Y-%m-%d - %H-%M-%S - ' + f'{fn}' # date formatted log
 l = setup_custom_logger(datetime.now().strftime(logname))
 
 # location of icon file for windows
