@@ -1,4 +1,9 @@
-import os, sys, time as t, logging as log, PySimpleGUI as sg, pandas as pd
+import os
+import sys
+import time as t
+import logging as log
+import PySimpleGUI as sg
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from selenium import webdriver
@@ -11,6 +16,7 @@ chrome_options = Options()
 # chrome_options.add_argument('--headless')
 
 ##################### Setup ########################
+
 
 def setup_custom_logger(name):
     fm = log.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
@@ -25,17 +31,20 @@ def setup_custom_logger(name):
     l.addHandler(sh)
     return l
 
+
 logdir = Path.cwd() / 'logs'
 Path(logdir).mkdir(exist_ok=True)
 
 fn = Path(__file__).with_suffix('.log')
-logname = 'logs/%Y-%m-%d - %H-%M-%S - ' + f'{fn}' # date formatted log
+logname = 'logs/%Y-%m-%d - %H-%M-%S - ' + f'{fn}'  # date formatted log
 l = setup_custom_logger(datetime.now().strftime(logname))
 
 # location of icon file for windows
 icon_file = 'icon/wave.ico'
 
 # set relative path for chromedriver executable file, otherwise its not on other user's system PATH
+
+
 def driver_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -45,630 +54,651 @@ def driver_path(relative_path):
 
 ##################### Bot Commands ########################
 
+
 class CMSBot:
-	def __init__(self):
-		self.b = webdriver.Chrome(options=chrome_options, executable_path=driver_path('./driver/chromedriver.exe'))
+    def __init__(self):
+        self.b = webdriver.Chrome(options=chrome_options, executable_path=driver_path(
+            './driver/chromedriver.exe'))
 
-	def edit(self, ID):
-		b = self.b
-		url = 'http://newcms.warc.com/content/edit'
-		b.get(url)
-		l.info(f"requested url: '{url}'")
-		b.implicitly_wait(5)
-		l.info(f'-> editing {ID}')
-		g = b.find_element_by_name('LegacyId')
-		g.clear()
-		g.send_keys(ID)
-		g.send_keys(Keys.RETURN)
-		t.sleep(1)
+    def edit(self, ID):
+        b = self.b
+        url = 'http://newcms.warc.com/content/edit'
+        b.get(url)
+        l.info(f"requested url: '{url}'")
+        b.implicitly_wait(5)
+        l.info(f'-> editing {ID}')
+        g = b.find_element_by_name('LegacyId')
+        g.clear()
+        g.send_keys(ID)
+        g.send_keys(Keys.RETURN)
+        t.sleep(1)
 
-	def batch_actions(self, code, id_from, id_to, date):
-		b = self.b
-		url = 'http://newcms.warc.com/content/batch-actions'
-		b.get(url)
-		l.info('Requested url: ' + url)
-		b.implicitly_wait(10)
+    def batch_actions(self, code, id_from, id_to, date):
+        b = self.b
+        url = 'http://newcms.warc.com/content/batch-actions'
+        b.get(url)
+        l.info('Requested url: ' + url)
+        b.implicitly_wait(10)
 
-		l.info(f'editing ID Range: {id_from}-{id_to} in {code}')
-		# selects correct award source, though this isn't strictly necessary
-		b.find_element_by_id('Source').click()
-		b.find_element_by_xpath(f'//option[@value="{code}"]').click()
-		l.info(f'selected {code}')
+        l.info(f'editing ID Range: {id_from}-{id_to} in {code}')
+        # selects correct award source, though this isn't strictly necessary
+        b.find_element_by_id('Source').click()
+        b.find_element_by_xpath(f'//option[@value="{code}"]').click()
+        l.info(f'selected {code}')
 
-		for k, v in [('IdFrom', id_from), ('IdTo', id_to)]: # first id and last id
-			if v is not None:
-				IdRng = b.find_element_by_id(k)
-				IdRng.clear()
-				IdRng.send_keys(v)
-				l.info(f'entered: {v} into {k}')
+        for k, v in [('IdFrom', id_from), ('IdTo', id_to)]:  # first id and last id
+            if v is not None:
+                IdRng = b.find_element_by_id(k)
+                IdRng.clear()
+                IdRng.send_keys(v)
+                l.info(f'entered: {v} into {k}')
 
-			elif v is None:
-				print('An ID was invalid')
+            elif v is None:
+                print('An ID was invalid')
 
-		# selects publication date range if date is valid
-		if len(date) == 8:
-			for i in ['DateFrom', 'DateTo']: # ids of publication date range elements
-				DtRng = b.find_element_by_id(i)
-				DtRng.clear()
-				DtRng.send_keys(date)
-				l.info(f'entered: {date} into {i}')
-		else:
-			pass
+        # selects publication date range if date is valid
+        if len(date) == 8:
+            for i in ['DateFrom', 'DateTo']:  # ids of publication date range elements
+                DtRng = b.find_element_by_id(i)
+                DtRng.clear()
+                DtRng.send_keys(date)
+                l.info(f'entered: {date} into {i}')
+        else:
+            pass
 
-		t.sleep(2)
-		# clicks view
-		b.find_element_by_xpath('//input[@type="submit"]').click()
-		l.info('clicked [View]')
+        t.sleep(2)
+        # clicks view
+        b.find_element_by_xpath('//input[@type="submit"]').click()
+        l.info('clicked [View]')
 
-	def tick(self, ids, remainder_IDs):
-		b = self.b
-		confirmed_IDs = []
+    def tick(self, ids, remainder_IDs):
+        b = self.b
+        confirmed_IDs = []
 
-		l.info('checking IDs are listed')
-		# match IDs to see if they exist before ticking
-		for i in ids:
-			try:
-				b.find_element_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]")
-				confirmed_IDs.append(i)
-			except NoSuchElementException:
-				remainder_IDs.append(int(i))
-				l.error(
-					'no such element: Unable to locate element: {"method":"xpath","selector":"//tbody/tr/td[contains(text(), '
-																	+ f"'{i}'" + '}' + f'appended {i} to remaining_IDs list')
-		for i in confirmed_IDs:
-			try:
-				tickbox = b.find_elements_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]/../td")[0].click()
-				l.info(f'{i} ticked')
-			except Exception as e:
-				l.error(e)
+        l.info('checking IDs are listed')
+        # match IDs to see if they exist before ticking
+        for i in ids:
+            try:
+                b.find_element_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]")
+                confirmed_IDs.append(i)
+            except NoSuchElementException:
+                remainder_IDs.append(int(i))
+                l.error(
+                    'no such element: Unable to locate element: {"method":"xpath","selector":"//tbody/tr/td[contains(text(), '
+                    + f"'{i}'" + '}' + f'appended {i} to remaining_IDs list')
+        for i in confirmed_IDs:
+            try:
+                tickbox = b.find_elements_by_xpath(f"//tbody/tr/td[contains(text(), '{i}')]/../td")[0].click()
+                l.info(f'{i} ticked')
+            except Exception as e:
+                l.error(e)
 
 ##################################### Videos functions #######################################
 
-	def remove_video(self):
-		'''
-		removes any existing videos, with check to see if button is visible.
-		currently the cms doesn't save changes.
-		'''
-		b = self.b
-		b.find_element_by_link_text('Videos').click()
-		remove = b.find_elements_by_xpath('//input[@value="Remove"]')
-		for rmv in remove:
-			if click_if_available(rmv):
-				l.info('removed video')
-			else:
-				pass
+    def remove_video(self):
+        '''
+        removes any existing videos, with check to see if button is visible.
+        currently the cms doesn't save changes.
+        '''
+        b = self.b
+        b.find_element_by_link_text('Videos').click()
+        remove = b.find_elements_by_xpath('//input[@value="Remove"]')
+        for rmv in remove:
+            if click_if_available(rmv):
+                l.info('removed video')
+            else:
+                pass
 
-	def replace_video(self, vnum, vtype, vlink):
-		'''
-		takes row from 'readcsvf' and replaces existing video metadata in the cms.
-		
-		'''
-		b = self.b
-		if int(vlink):
+    def replace_video(self, vnum, vtype, vlink):
+        '''
+        takes row from 'readcsvf' and replaces existing video metadata in the cms.
 
-			if 'v01' in vnum:
-				b.find_element_by_link_text('Videos').click()
-				l.info('clicked accordion [ Videos ]')
+        '''
+        b = self.b
+        if int(vlink):
 
-			for i, n in enumerate(['v01','v02','v03']):	
-				if n in vnum:
-					l.info(f'editing: {vnum}')
-					link = b.find_element_by_id(f'VideoViewModels_{i}__VideoLink')
-					link.clear()
-					l.info('cleared Link field')
-					link.send_keys(vlink)
-					l.info(f'Sent keys: {vlink}')
-					
-					if 'creative' in vtype.lower():
-						btn1 = b.find_element_by_id(f'VideoViewModels_{i}__VideoType')
-						click_if_available(btn1)
-						l.info("Clicked dropdown [ Type ]")
-						t.sleep(0.5)
-						btn2 = b.find_element_by_xpath(
-					f'//select[@id="VideoViewModels_{i}__VideoType"]//option[@value="Creative"]')
-						click_if_available(btn2)
-						l.info("Selected 'Creative'")
-						t.sleep(0.5)
-					else:
-						pass
-		else:
-			sg.popup('vlink not integer',
-				keep_on_top=True)
-			l.info('vlink not integer')
+            if 'v01' in vnum:
+                b.find_element_by_link_text('Videos').click()
+                l.info('clicked accordion [ Videos ]')
 
-	def add_video(self, vnum, vtype, vlink):
-		'''takes row from 'readcsvf' and adds new videos into cms.'''
-		b = self.b
+            for i, n in enumerate(['v01', 'v02', 'v03']):
+                if n in vnum:
+                    l.info(f'editing: {vnum}')
+                    link = b.find_element_by_id(f'VideoViewModels_{i}__VideoLink')
+                    link.clear()
+                    l.info('cleared Link field')
+                    link.send_keys(vlink)
+                    l.info(f'Sent keys: {vlink}')
 
-		# scroll functionality to get elements in view
-		def scroll(element):
-			actions = ActionChains(b)
-			actions.move_to_element(element).perform()
-			l.info('scrolled to element')
+                    if 'creative' in vtype.lower():
+                        btn1 = b.find_element_by_id(f'VideoViewModels_{i}__VideoType')
+                        click_if_available(btn1)
+                        l.info("Clicked dropdown [ Type ]")
+                        t.sleep(0.5)
+                        btn2 = b.find_element_by_xpath(
+                            f'//select[@id="VideoViewModels_{i}__VideoType"]//option[@value="Creative"]')
+                        click_if_available(btn2)
+                        l.info("Selected 'Creative'")
+                        t.sleep(0.5)
+                    else:
+                        pass
+        else:
+            sg.popup('vlink not integer',
+                     keep_on_top=True)
+            l.info('vlink not integer')
 
-		def add_button():
-			btn = b.find_element_by_id('add-video-button')
-			click_if_available(btn)
-			scroll(btn)
-			l.info('clicked [Add]')
-		
-		# get article title from metadata to reuse for video names
-		article_title = b.find_element_by_id('Title').get_attribute('value')
-		l.info('article title - ' + article_title)
+    def add_video(self, vnum, vtype, vlink):
+        '''takes row from 'readcsvf' and adds new videos into cms.'''
+        b = self.b
 
-		if int(vlink):
-			if 'v01' in vnum:
-				b.find_element_by_link_text('Videos').click()
-				l.info('clicked accordion [ Videos ]')
+        # scroll functionality to get elements in view
+        def scroll(element):
+            actions = ActionChains(b)
+            actions.move_to_element(element).perform()
+            l.info('scrolled to element')
 
-			for i, n in enumerate(['v01','v02','v03']):
-				if n in vnum:
-					l.info(vnum)
-					t.sleep(1)
-					add_button()
+        def add_button():
+            btn = b.find_element_by_id('add-video-button')
+            click_if_available(btn)
+            scroll(btn)
+            l.info('clicked [Add]')
 
-					link = b.find_element_by_id(f'AddedVideo{i}_VideoLink')
-					link.clear()
-					link.send_keys(vlink)
-					l.info(f'link - {vlink}')
-					title = b.find_element_by_id(f'AddedVideo{i}_VideoTitle').send_keys(article_title)
-					l.info('title - ' + article_title)
-					
-					if 'creative' in vtype.lower():
-						vid_type = b.find_element_by_id(f'AddedVideo{i}_VideoType')
-						click_if_available(vid_type)
-						l.info("Clicked dropdown [ Type ]")
-						t.sleep(0.5)
-						select_type = b.find_element_by_xpath(
-							f'//select[@id="AddedVideo{i}_VideoType"]//option[@value="Creative"]')
-						click_if_available(select_type)
-						l.info("Selected 'Creative'")
-						t.sleep(0.5)
-					else:
-						pass
-		else:
-			sg.popup('vlink not integer',
-				keep_on_top=True)
-			l.info('vlink not integer')
+        # get article title from metadata to reuse for video names
+        article_title = b.find_element_by_id('Title').get_attribute('value')
+        l.info('article title - ' + article_title)
 
-	def save(self):
-		'''clicks cms button to save changes'''
-		b = self.b
-		t.sleep(0.5)
-		b.find_element_by_xpath('//span[@onclick="onSaveClicked()"]').click()
-		l.info('Saved changes')
-		t.sleep(3)
+        if int(vlink):
+            if 'v01' in vnum:
+                b.find_element_by_link_text('Videos').click()
+                l.info('clicked accordion [ Videos ]')
 
-	def bullets(self):
-		b = self.b
-		# check if button clickable and text present in box
-		b.find_element_by_link_text('Summary').click()
-		l.info("clicked [Summary] (Expand)")
-		b.find_element_by_id('GenerateBullets').click()
-		l.info("clicked [Generate Bullets]")
-		t.sleep(1)
+            for i, n in enumerate(['v01', 'v02', 'v03']):
+                if n in vnum:
+                    l.info(vnum)
+                    t.sleep(1)
+                    add_button()
 
-	def dates(self, value):
-		b = self.b
-		b.find_element_by_id("PublicationDate").send_keys(value)
-		b.find_element_by_id("LiveDate").send_keys(value)
-		t.sleep(1)
+                    link = b.find_element_by_id(f'AddedVideo{i}_VideoLink')
+                    link.clear()
+                    link.send_keys(vlink)
+                    l.info(f'link - {vlink}')
+                    title = b.find_element_by_id(f'AddedVideo{i}_VideoTitle').send_keys(article_title)
+                    l.info('title - ' + article_title)
 
-	def additional_info(self, award):
-		b = self.b
-		i = b.find_element_by_id('AdditionalInformation')
-		v = i.get_attribute('value') # get existing info
-		i.clear()
-		l.info('existing info - ' + v)
-		for x in ['Entrant, ','Shortlisted, ']:
-			v = v.replace(x, '')
-		i.send_keys(award + ', ' + v) # append award and strip existing Shortlisted if present
-		l.info('appending - ' + award)
-		n = b.find_element_by_id('AdditionalInformation').get_attribute('value')
-		l.info('new info - ' + n)
+                    if 'creative' in vtype.lower():
+                        vid_type = b.find_element_by_id(f'AddedVideo{i}_VideoType')
+                        click_if_available(vid_type)
+                        l.info("Clicked dropdown [ Type ]")
+                        t.sleep(0.5)
+                        select_type = b.find_element_by_xpath(
+                            f'//select[@id="AddedVideo{i}_VideoType"]//option[@value="Creative"]')
+                        click_if_available(select_type)
+                        l.info("Selected 'Creative'")
+                        t.sleep(0.5)
+                    else:
+                        pass
+        else:
+            sg.popup('vlink not integer',
+                     keep_on_top=True)
+            l.info('vlink not integer')
+
+    def save(self):
+        '''clicks cms button to save changes'''
+        b = self.b
+        t.sleep(0.5)
+        b.find_element_by_xpath('//span[@onclick="onSaveClicked()"]').click()
+        l.info('Saved changes')
+        t.sleep(3)
+
+    def bullets(self):
+        b = self.b
+        # check if button clickable and text present in box
+        b.find_element_by_link_text('Summary').click()
+        l.info("clicked [Summary] (Expand)")
+        b.find_element_by_id('GenerateBullets').click()
+        l.info("clicked [Generate Bullets]")
+        t.sleep(1)
+
+    def dates(self, value):
+        b = self.b
+        b.find_element_by_id("PublicationDate").send_keys(value)
+        b.find_element_by_id("LiveDate").send_keys(value)
+        t.sleep(1)
+
+    def additional_info(self, award):
+        b = self.b
+        i = b.find_element_by_id('AdditionalInformation')
+        v = i.get_attribute('value')  # get existing info
+        i.clear()
+        l.info('existing info - ' + v)
+        for x in ['Entrant, ', 'Shortlisted, ']:
+            v = v.replace(x, '')
+        # append award and strip existing Shortlisted if present
+        i.send_keys(award + ', ' + v)
+        l.info('appending - ' + award)
+        n = b.find_element_by_id(
+            'AdditionalInformation').get_attribute('value')
+        l.info('new info - ' + n)
 
 ##################### Additional functions ########################
 
+
 def click_if_available(button):
-	'''checks if button is enabled and displayed before clicking'''
-	if button.is_enabled() and button.is_displayed():
-		button.click()
-		t.sleep(0.5)
-		l.info('Button clicked')
-		# print('Button clicked')
-	else:
-		l.info('Button not clickable')
-		# print('Button not clickable')
+    '''checks if button is enabled and displayed before clicking'''
+    if button.is_enabled() and button.is_displayed():
+        button.click()
+        t.sleep(0.5)
+        l.info('Button clicked')
+        # print('Button clicked')
+    else:
+        l.info('Button not clickable')
+        # print('Button not clickable')
+
 
 def readcsvf(path_input):
-	'''
-	pass in path, check if it exists and is a valid '.csv' file.
-	- returns dataframe object for iterating over.
-	'''
-	# check if path to file exists 
-	csvf = Path(path_input)
-	if csvf.is_file() and csvf.suffix == '.csv': # read csv if valid
-		df = pd.read_csv(csvf, usecols=['ID', 'Vid', 'Type', 'Link'])
-		return df
-	else:
-		sg.popup('path was not a valid csv file', 
-			keep_on_top=True)
-		l.info('path_input was not a valid csv')
+    '''
+    pass in path, check if it exists and is a valid '.csv' file.
+    - returns dataframe object for iterating over.
+    '''
+    # check if path to file exists
+    csvf = Path(path_input)
+    if csvf.is_file() and csvf.suffix == '.csv':  # read csv if valid
+        df = pd.read_csv(csvf, usecols=['ID', 'Vid', 'Type', 'Link'])
+        # run data checks on cols
+        try:
+            df[['ID', 'Link']] = df[['ID', 'Link']].apply(pd.to_numeric)
+            return df
+        except ValueError as e:
+            l.error(e)
+            return None
+    else:
+        sg.popup('path was not a valid csv file',
+                 keep_on_top=True)
+        l.info('path_input was not a valid csv')
 
 ##################### Generate Bullets window ########################
 
+
 def generate_bullets_window():
 
-	cms = CMSBot()
+    cms = CMSBot()
 
-	layout = [
-		[sg.Text('Paste a column of IDs below:')],
-		[sg.Multiline()],
-		[sg.Submit(), sg.Cancel()]
-	]
+    layout = [
+        [sg.Text('Paste a column of IDs below:')],
+        [sg.Multiline()],
+        [sg.Submit(), sg.Cancel()]
+    ]
 
-	window = sg.Window(
-		'Generate Bullets',
-		layout,
-		icon=icon_file,
-		keep_on_top=True,
-		grab_anywhere=True
-	) 
+    window = sg.Window(
+        'Generate Bullets',
+        layout,
+        icon=icon_file,
+        keep_on_top=True,
+        grab_anywhere=True
+    )
 
-	while True:
-		event, values = window.read()
+    while True:
+        event, values = window.read()
 
-		if event in ('Cancel', None):
-			break
+        if event in ('Cancel', None):
+            break
 
-		if event == 'Submit':
-			IDs_input = values[0]
-			IDs = IDs_input.strip().split('\n')
+        if event == 'Submit':
+            IDs_input = values[0]
+            IDs = IDs_input.strip().split('\n')
 
-			for ID in IDs:
-				# checks ID is 6 digits
-				if len(ID) == 6:
-					
-					cms.edit(ID)
-					t.sleep(1)
-					# cms.bullets() # needs checks
-					t.sleep(1)
-					cms.save()
-					t.sleep(1)
-					
-				else:
-					l.info('- ID was not 6 digits long')
-					sg.popup('IDs need to be 6 digits long', keep_on_top=True)
+            for ID in IDs:
+                # checks ID is 6 digits
+                if len(ID) == 6:
 
-			sg.popup('Generated bullets for IDs:', IDs_input)
+                    cms.edit(ID)
+                    t.sleep(1)
+                    # cms.bullets() # needs checks
+                    t.sleep(1)
+                    cms.save()
+                    t.sleep(1)
 
-	cms.b.quit()
-	l.info('- exited browser correctly')
-	window.close()
+                else:
+                    l.info('- ID was not 6 digits long')
+                    sg.popup('IDs need to be 6 digits long', keep_on_top=True)
+
+            sg.popup('Generated bullets for IDs:', IDs_input)
+
+    cms.b.quit()
+    l.info('- exited browser correctly')
+    window.close()
 
 
 ######################## Change Metadata window ############################
 
 def metadata_window():
 
-	cms = CMSBot()
- 
-	layout = [
-		[sg.Output(size=(42,18))],
-		[sg.Text('Paste a column of IDs and select the status of entries')],
-		[sg.Text('IDs'), sg.Multiline(focus=True)],
-		[sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText()]],
-			title='Live Date',
-			title_color='white')],
-		[sg.Frame(layout=[
-			[sg.Radio('Shortlisted', 'R', key='R1', default=False),
-			sg.Radio('Entrant', 'R', key='R2', default=False)]],
-			title='Status',
-			title_color='white',
-			relief=sg.RELIEF_SUNKEN,
-			tooltip="Select whether to add 'Shortlisted' or 'Entrant' to Additional Information field.")], 
-		[sg.Submit(), sg.Cancel()]
-	]
+    cms = CMSBot()
 
-	window = sg.Window('Change Metadata',
-								layout,
-								icon=icon_file,
-								keep_on_top=True,
-								grab_anywhere=True)    
-	
-	while True:
-		event, values = window.read()
+    layout = [
+        [sg.Output(size=(42, 18))],
+        [sg.Text('Paste a column of IDs and select the status of entries')],
+        [sg.Text('IDs'), sg.Multiline(focus=True)],
+        [sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText()]],
+                  title='Live Date',
+                  title_color='white')],
+        [sg.Frame(layout=[
+            [sg.Radio('Shortlisted', 'R', key='R1', default=False),
+             sg.Radio('Entrant', 'R', key='R2', default=False)]],
+            title='Status',
+            title_color='white',
+            relief=sg.RELIEF_SUNKEN,
+            tooltip="Select whether to add 'Shortlisted' or 'Entrant' to Additional Information field.")],
+        [sg.Submit(), sg.Cancel()]
+    ]
 
-		if event in ('Cancel', None):
-			break
+    window = sg.Window('Change Metadata',
+                       layout,
+                       icon=icon_file,
+                       keep_on_top=True,
+                       grab_anywhere=True)
 
-		if event == 'Submit':
-			print('Changing metadata for IDs:\n' + values[0])
-			t.sleep(1)
+    while True:
+        event, values = window.read()
 
-			IDs_input = values[0]
-			IDs = IDs_input.strip().split('\n')
-			date = values[1]
+        if event in ('Cancel', None):
+            break
 
-			for ID in IDs:
-				# checks ID is 6 digits
-				if len(ID) == 6:
-					cms.edit(ID)
+        if event == 'Submit':
+            print('Changing metadata for IDs:\n' + values[0])
+            t.sleep(1)
 
-					# if a Radio button is selected, append string to additional info field
-					if values['R1'] == True: # get('R1')
-						cms.additional_info('Shortlisted')
-					elif values['R2'] == True:
-						cms.additional_info('Entrant')
+            IDs_input = values[0]
+            IDs = IDs_input.strip().split('\n')
+            date = values[1]
 
-					# if valid date in dd/mm/yyyy format (8 digits), change date, otherwise pass or print message
-					if str(date) == '':
-						pass
-					elif len(str(date)) == 8:
-						cms.dates(date)
-					else:
-						print('date must be 8 digits in ddmmyyy format')
+            for ID in IDs:
+                # checks ID is 6 digits
+                if len(ID) == 6:
+                    cms.edit(ID)
 
-					t.sleep(1)
-					cms.save()
-					t.sleep(1)
-					
-				elif len(ID) < 6:
-					print('- ID was not 6 digits long')
+                    # if a Radio button is selected, append string to additional info field
+                    if values['R1'] == True:  # get('R1')
+                        cms.additional_info('Shortlisted')
+                    elif values['R2'] == True:
+                        cms.additional_info('Entrant')
 
-	cms.b.quit()
-	l.info('- exited browser correctly')
-	window.close()
+                    # if valid date in dd/mm/yyyy format (8 digits), change date, otherwise pass or print message
+                    if str(date) == '':
+                        pass
+                    elif len(str(date)) == 8:
+                        cms.dates(date)
+                    else:
+                        print('date must be 8 digits in ddmmyyy format')
+
+                    t.sleep(1)
+                    cms.save()
+                    t.sleep(1)
+
+                elif len(ID) < 6:
+                    print('- ID was not 6 digits long')
+
+    cms.b.quit()
+    l.info('- exited browser correctly')
+    window.close()
 
 ###################### Batch Actions window ##########################
-	
+
+
 def tick_ids_window():
 
-	cms = CMSBot()
-	
-	codes = {
-		'WARC Awards': 'WARC-AWARDS',
-		'MENA Prize': 'WARC-PRIZE-MENA',
-		'Asia Prize': 'Warc-Prize-Asia',
-		'Media Awards': 'Warc-Awards-Media'
-	}
+    cms = CMSBot()
 
-	layout = [
-		[sg.Output(size=(42,18))],
-		[sg.Frame(layout=[*[[sg.Radio(x, 'Award', key=x)] for x in codes.keys()]], # .upper().split(' ')[0]
-			title='Award',
-			title_color='white')], 
-		[sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText(key='DATE')]], # values[4]
-			title='Live Date',
-			title_color='white')], 
-		[sg.Text('Paste a column of IDs below:')],
-		[sg.Multiline(do_not_clear=False, key='IDS')], # values[5]
-		[sg.Submit(), sg.Cancel()]
-	]
+    codes = {
+        'WARC Awards': 'WARC-AWARDS',
+        'MENA Prize': 'WARC-PRIZE-MENA',
+        'Asia Prize': 'Warc-Prize-Asia',
+        'Media Awards': 'Warc-Awards-Media'
+    }
 
-	window = sg.Window('Batch Actions',
-								layout,
-								icon=icon_file,
-								keep_on_top=True,
-								grab_anywhere=True)
+    layout = [
+        [sg.Output(size=(42, 18))],
+        [sg.Frame(layout=[*[[sg.Radio(x, 'Award', key=x)] for x in codes.keys()]],  # .upper().split(' ')[0]
+                  title='Award',
+                  title_color='white')],
+        [sg.Frame(layout=[[sg.Text('ddmmyyyy'), sg.InputText(key='DATE')]],  # values[4]
+                  title='Live Date',
+                  title_color='white')],
+        [sg.Text('Paste a column of IDs below:')],
+        [sg.Multiline(do_not_clear=False, key='IDS')],  # values[5]
+        [sg.Submit(), sg.Cancel()]
+    ]
 
-	while True:
-		event, values = window.read()
+    window = sg.Window('Batch Actions',
+                       layout,
+                       icon=icon_file,
+                       keep_on_top=True,
+                       grab_anywhere=True)
 
-		if event in ('Cancel', None):
-			break
+    while True:
+        event, values = window.read()
 
-		if event == 'Submit':
-			date = values['DATE']
-			IDs_input = values['IDS']
+        if event in ('Cancel', None):
+            break
 
-			if not IDs_input: # if no IDs are entered and list of values is blank
-				print('No IDs entered')
-			else:
-				raw_IDs = IDs_input.strip().split('\n')
-				
-				# converts to integers for min/max values and notifies of any strings not added
-				IDs = [int(x) if len(x) == 6 else print(x, 'ID not valid 6 digits') for x in raw_IDs]
-				id_from = min(IDs)
-				id_to = max(IDs)
-				
-				# gets
-				print('Select award')
-				for x in codes.keys():
+        if event == 'Submit':
+            date = values['DATE']
+            IDs_input = values['IDS']
 
-					if values[x] == True:
-						code = codes[x]
-						print(IDs)
-						print('Code:', code)
+            if not IDs_input:  # if no IDs are entered and list of values is blank
+                print('No IDs entered')
+            else:
+                raw_IDs = IDs_input.strip().split('\n')
 
-						if len(date) == 8:
-							print('Date:', date)
-						
-						remainder_IDs = []
-						try:
-							if len(remainder_IDs) < 1:
-								cms.batch_actions(code, id_from, id_to, date)
-								cms.tick(IDs, remainder_IDs)
-							# needs to pause before doing this
-							if len(remainder_IDs) > 0:
-								print(str(len(remainder_IDs)) + f' IDs remaining: {remainder_IDs}')
-								id_from = min(remainder_IDs)
-								id_to = max(remainder_IDs)
-								# print(f'editing {code}, {id_from}-{id_to}') 
-								# cms.batch_actions(code, id_from, id_to, date) 
-								# cms.tick(remainder_IDs, [])
-							
-						except Exception:
-							l.exception('Exception:')
-							sg.popup('An error occured, please see log file.', keep_on_top=True)
-							continue		
+                # converts to integers for min/max values and notifies of any strings not added
+                IDs = [int(x) if len(x) == 6 else print(
+                    x, 'ID not valid 6 digits') for x in raw_IDs]
+                id_from = min(IDs)
+                id_to = max(IDs)
 
-	cms.b.quit()
-	l.info('- exited browser correctly')
-	window.close()
+                # gets
+                print('Select award')
+                for x in codes.keys():
+
+                    if values[x] == True:
+                        code = codes[x]
+                        print(IDs)
+                        print('Code:', code)
+
+                        if len(date) == 8:
+                            print('Date:', date)
+
+                        remainder_IDs = []
+                        try:
+                            if len(remainder_IDs) < 1:
+                                cms.batch_actions(code, id_from, id_to, date)
+                                cms.tick(IDs, remainder_IDs)
+                            # needs to pause before doing this
+                            if len(remainder_IDs) > 0:
+                                print(str(len(remainder_IDs)) + f' IDs remaining: {remainder_IDs}')
+                                id_from = min(remainder_IDs)
+                                id_to = max(remainder_IDs)
+                                # print(f'editing {code}, {id_from}-{id_to}')
+                                # cms.batch_actions(code, id_from, id_to, date)
+                                # cms.tick(remainder_IDs, [])
+
+                        except Exception:
+                            l.exception('Exception:')
+                            sg.popup(
+                                'An error occured, please see log file.', keep_on_top=True)
+                            continue
+
+    cms.b.quit()
+    l.info('- exited browser correctly')
+    window.close()
 
 ##################### Videos window ########################
 
+
 def videos_window():
-	'''
-	GUI window with three main functions: adding, replacing or removing videos in the cms. 
-	- takes input for csv file containing relavant data.
-	- checks that video link is integer to avoid pasting string into box.
-	- takes column of IDs as input to remove all videos from each.
-	'''
-	cms = CMSBot()
-	layout = [
-		[sg.Frame(
-			title='Remove videos',
-			title_color='white',
-			layout=[
-				[sg.Text('Paste column of IDs to remove videos:')],
-				[sg.Multiline(key='IDS'), sg.Button('Remove')],
-			])],
-		[sg.Frame(
-			title='Edit videos',
-			title_color='white',
-			layout=[
-				[sg.Text('Paste a path to csv:')],
-				[sg.InputText(key='PATH')],
-				[sg.Button('Replace'), sg.Button('Add')]
-			])],
-		[sg.Cancel()]
-	]
-	window = sg.Window('Videos window',
-						layout,
-						icon=icon_file,
-						keep_on_top=True,
-						grab_anywhere=True) 
-	while True:
-		event, values = window.read()
-		path_input = values['PATH']
-		IDs_input = values['IDS']
+    '''
+    GUI window with three main functions: adding, replacing or removing videos in the cms. 
+    - takes input for csv file containing relavant data.
+    - checks that video link is integer to avoid pasting string into box.
+    - takes column of IDs as input to remove all videos from each.
+    '''
+    cms = CMSBot()
+    layout = [
+        [sg.Frame(
+            title='Remove videos',
+            title_color='white',
+            layout=[
+                [sg.Text('Paste column of IDs to remove videos:')],
+                [sg.Multiline(key='IDS'), sg.Button('Remove')],
+            ])],
+        [sg.Frame(
+            title='Edit videos',
+            title_color='white',
+            layout=[
+                [sg.Text('Paste a path to csv:')],
+                [sg.InputText(key='PATH')],
+                [sg.Button('Replace'), sg.Button('Add')]
+            ])],
+        [sg.Cancel()]
+    ]
+    window = sg.Window('Videos window',
+                       layout,
+                       icon=icon_file,
+                       keep_on_top=True,
+                       grab_anywhere=True)
+    while True:
+        event, values = window.read()
+        path_input = values['PATH']
+        IDs_input = values['IDS']
 
-		if event in ('Cancel', None):
-			break
+        if event in ('Cancel', None):
+            break
 
-		if event == 'Replace' or event == 'Add':
-			try:
-				df = readcsvf(path_input)
-				for r in df.itertuples(index=True):
+        if event == 'Replace' or event == 'Add':
+            try:
+                df = readcsvf(path_input)
+                for r in df.itertuples(index=True):
 
-					vn = r.Vid
-					vt = r.Type
-					vl = r.Link
+                    vn = r.Vid
+                    vt = r.Type
+                    vl = r.Link
 
-					l.info(f'-> csv row [{r.ID} - {vn} - {vl} - {vt}]')
+                    l.info(f'-> csv row [{r.ID} - {vn} - {vl} - {vt}]')
 
-					if int(vl):
-						if 'v01' in vn:
-							cms.edit(r.ID)
-							if event == 'Replace':
-								cms.replace_video(vnum=vn, vtype=vt, vlink=vl)
-							elif event == 'Add':
-								cms.add_video(vn, vt, vl) 
-						if not 'v01' in vn:
-							if event == 'Replace':
-								cms.replace_video(vn, vt, vl) 
-							elif event == 'Add':
-								cms.add_video(vn, vt, vl) 
-						cms.save()
-					else:
-						sg.popup('ValueError: vlink may not be an integer' + ve, 
-							keep_on_top=True)
-						break
-						l.info('ValueError: vlink not integer')
+                    if int(vl):
+                        if 'v01' in vn:
+                            cms.edit(r.ID)
+                            if event == 'Replace':
+                                cms.replace_video(vnum=vn, vtype=vt, vlink=vl)
+                            elif event == 'Add':
+                                cms.add_video(vn, vt, vl)
+                        if not 'v01' in vn:
+                            if event == 'Replace':
+                                cms.replace_video(vn, vt, vl)
+                            elif event == 'Add':
+                                cms.add_video(vn, vt, vl)
+                        cms.save()
+                    else:
+                        sg.popup('ValueError: vlink may not be an integer' + ve,
+                                 keep_on_top=True)
+                        l.info('ValueError: vlink not integer')
+                        break
 
-			except Exception as e:
-				sg.popup(e, 
-					keep_on_top=True)
-				l.error(e)
-		
-		if event == 'Remove':
-			# currently changes don't get saved
-			IDs = IDs_input.strip().split('\n')
+            except Exception as e:
+                sg.popup(e,
+                         keep_on_top=True)
+                l.error(e)
+                break
 
-			for ID in IDs:
-				# checks ID is 6 digits
-				if len(ID) == 6:
-					try:
-						cms.edit((int(ID)))
-					except ValueError:
-						l.info('- ID was not integer')
-						sg.popup('IDs must be integers', keep_on_top=True)
-					t.sleep(0.5)
-					cms.remove_video()
-					cms.save()
-				else:
-					l.info('- ID was not 6 digits long')
-					sg.popup('IDs need to be 6 digits long', keep_on_top=True)
+        if event == 'Remove':
+            # currently changes don't get saved
+            IDs = IDs_input.strip().split('\n')
 
-	cms.b.quit()
-	l.info('- exited chromedriver correctly')
-	window.close()
+            for ID in IDs:
+                # checks ID is 6 digits
+                if len(ID) == 6:
+                    try:
+                        cms.edit((int(ID)))
+                    except ValueError:
+                        l.info('- ID was not integer')
+                        sg.popup('IDs must be integers', keep_on_top=True)
+                    t.sleep(0.5)
+                    cms.remove_video()
+                    cms.save()
+                else:
+                    l.info('- ID was not 6 digits long')
+                    sg.popup('IDs need to be 6 digits long', keep_on_top=True)
+
+    cms.b.quit()
+    l.info('- exited chromedriver correctly')
+    window.close()
 
 ######################## Main Window ############################
 
+
 def main():
-	'''
-	# INSTRUCTIONS
-	- all you do is select a script
-	  and select whichever settings you want
-	  paste a column of IDs into the input field
-	  hit Submit or Enter
-	- the script will automatically interact with the IDs in the cms
-	- our cms can only be accessed through vpn
-	'''
-	# theme_previewer()
-	sg.theme('DarkPurple4') 
+    '''
+    # INSTRUCTIONS
+    - all you do is select a script
+      and select whichever settings you want
+      paste a column of IDs into the input field
+      hit Submit or Enter
+    - the script will automatically interact with the IDs in the cms
+    - our cms can only be accessed through vpn
+    '''
+    # theme_previewer()
+    sg.theme('DarkPurple4')
 
-	layout = [
-		[sg.Frame(
-			title='Edit Functions',
-			title_color='white',
-			relief=sg.RELIEF_SUNKEN,
-			layout=[[sg.Button('Bullets'), sg.Button('Metadata'), sg.Button('Videos')]]
-		)],
-		[sg.Frame(
-			title='Batch Actions',
-			title_color='white',
-			relief=sg.RELIEF_SUNKEN,
-			layout=[[sg.Button('Tick IDs')]]
-		)],
-		[sg.Exit()]
-	]
+    layout = [
+        [sg.Frame(
+            title='Edit Functions',
+            title_color='white',
+            relief=sg.RELIEF_SUNKEN,
+            layout=[[sg.Button('Bullets'), sg.Button(
+                'Metadata'), sg.Button('Videos')]]
+        )],
+        [sg.Frame(
+            title='Batch Actions',
+            title_color='white',
+            relief=sg.RELIEF_SUNKEN,
+            layout=[[sg.Button('Tick IDs')]]
+        )],
+        [sg.Exit()]
+    ]
 
-	window = sg.Window('CMS Bot',
-						layout,
-						icon=icon_file,
-						resizable=True,
-						keep_on_top=True,
-						grab_anywhere=True)
+    window = sg.Window('CMS Bot',
+                       layout,
+                       icon=icon_file,
+                       resizable=True,
+                       keep_on_top=True,
+                       grab_anywhere=True)
 
-	while True:
-		try:
-			event, values = window.read()
-		
-			if event in ('Exit', None):
-				break
-			if event == 'Bullets':
-				l.info(event + ' selected')
-				pass
-				# generate_bullets_window() # needs work
-			if event == 'Metadata':
-				l.info(event + ' selected')
-				metadata_window() # needs Award issue field incorporating
-			if event == 'Videos':
-				l.info(event + ' selected')
-				videos_window()
-			if event == 'Tick IDs':
-				l.info(event + ' selected')
-				tick_ids_window()
+    while True:
+        try:
+            event, values = window.read()
 
-		except Exception:
-			l.exception('Exception:')
-			sg.popup('An error occured, please see log file.', keep_on_top=True)
+            if event in ('Exit', None):
+                break
+            if event == 'Bullets':
+                l.info(event + ' selected')
+                pass
+                # generate_bullets_window() # needs work
+            if event == 'Metadata':
+                l.info(event + ' selected')
+                metadata_window()  # needs Award issue field incorporating
+            if event == 'Videos':
+                l.info(event + ' selected')
+                videos_window()
+            if event == 'Tick IDs':
+                l.info(event + ' selected')
+                tick_ids_window()
 
-	window.close()
+        except Exception:
+            l.exception('Exception:')
+            sg.popup('An error occured, please see log file.', keep_on_top=True)
+
+    window.close()
+
 
 if __name__ == '__main__':
-	main()
+    main()
