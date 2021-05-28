@@ -289,10 +289,8 @@ def click_if_available(button):
         button.click()
         t.sleep(0.5)
         l.info('Button clicked')
-        # print('Button clicked')
     else:
         l.info('Button not clickable')
-        # print('Button not clickable')
 
 
 def readcsvf(path_input):
@@ -310,6 +308,7 @@ def readcsvf(path_input):
             return df
         except ValueError as e:
             l.error(e)
+            l.error("Check csv headers are correct, 'ID' and 'Link'")
             return None
     else:
         sg.popup('path was not a valid csv file',
