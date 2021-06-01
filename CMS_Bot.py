@@ -449,10 +449,10 @@ def tick_ids_window():
     cms = CMSBot()
 
     codes = {
-        'WARC Awards': 'WARC-AWARDS',
+        'WARC Awards for Effectiveness': 'WARC-AWARDS-EFFECTIVENESS',
         'MENA Prize': 'WARC-PRIZE-MENA',
-        'Asia Prize': 'Warc-Prize-Asia',
-        'Media Awards': 'Warc-Awards-Media'
+        'WARC Awards for Asian Strategy': 'Warc-Awards-Asia',
+        'WARC Awards for Media': 'Warc-Awards-Media'
     }
 
     layout = [
