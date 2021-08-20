@@ -451,7 +451,7 @@ def tick_ids_window():
     codes = {
         'WARC Awards for Effectiveness': 'WARC-AWARDS-EFFECTIVENESS',
         'MENA Prize': 'WARC-PRIZE-MENA',
-        'WARC Awards for Asian Strategy': 'Warc-Awards-Asia',
+        'WARC Awards for Asian Strategy': 'WARC-AWARDS-ASIA',
         'WARC Awards for Media': 'Warc-Awards-Media'
     }
 
