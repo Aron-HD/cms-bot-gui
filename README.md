@@ -1,5 +1,5 @@
 
-# Generate Bullet Summaries
+# CMSBot GUI
 --- 
 
 Taking the CMSBot class from `cms_edit.py` / `cms_batch_edit.py` from CMS-bot repository and applying a lightweight GUI frontend to it. Choose a script, then paste a list of IDs into the text field and select what you want to happen instead of setting up a csv file to make it more accessible and distributable to the wider team.
