@@ -59,12 +59,13 @@ class CMSBot:
     def __init__(self):
         self.b = webdriver.Chrome(options=chrome_options, executable_path=driver_path(
             './driver/chromedriver.exe'))
+        self.batch_url = 'http://cms.warc.com/content/batch-actions'
+        self.url = 'http://cms.warc.com/content/edit'
 
     def edit(self, ID):
         b = self.b
-        url = 'http://newcms.warc.com/content/edit'
-        b.get(url)
-        l.info(f"requested url: '{url}'")
+        b.get(self.url)
+        l.info(f"requested url: '{self.url}'")
         b.implicitly_wait(5)
         l.info(f'-> editing {ID}')
         g = b.find_element_by_name('LegacyId')
@@ -75,9 +76,8 @@ class CMSBot:
 
     def batch_actions(self, code, id_from, id_to, date):
         b = self.b
-        url = 'http://newcms.warc.com/content/batch-actions'
-        b.get(url)
-        l.info('Requested url: ' + url)
+        b.get(self.batch_url)
+        l.info('Requested url: ' + self.batch_url)
         b.implicitly_wait(10)
 
         l.info(f'editing ID Range: {id_from}-{id_to} in {code}')
