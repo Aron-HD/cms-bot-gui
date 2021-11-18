@@ -250,10 +250,21 @@ class CMSBot:
         l.info('Saved changes')
         t.sleep(3)
 
+    def temp_summary(self):
+        b = self.b
+        t.sleep(0.5)
+        summary_accordian = b.find_element_by_link_text('Summary (English)')
+        self.scroll(summary_accordian)
+        summary_accordian.click()
+        l.info("clicked [Summary] (Expand)")
+        t.sleep(0.5)
+        b.find_element_by_id("ParagraphSummary").send_keys('x')
+        l.info('added x to summary')
+
     def bullets(self):
         b = self.b
         # check if button clickable and text present in box
-        b.find_element_by_link_text('Summary').click()
+        b.find_element_by_link_text('Summary (English)').click()
         l.info("clicked [Summary] (Expand)")
         b.find_element_by_id('GenerateBullets').click()
         l.info("clicked [Generate Bullets]")
