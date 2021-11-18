@@ -187,20 +187,20 @@ class CMSBot:
                      keep_on_top=True)
             l.info('vlink not integer')
 
+    # scroll functionality to get elements in view
+    def scroll(self, element):
+        actions = ActionChains(self.b)
+        actions.move_to_element(element).perform()
+        l.info('scrolled to element')
+
     def add_video(self, vnum, vtype, vlink):
         '''takes row from 'readcsvf' and adds new videos into cms.'''
         b = self.b
 
-        # scroll functionality to get elements in view
-        def scroll(element):
-            actions = ActionChains(b)
-            actions.move_to_element(element).perform()
-            l.info('scrolled to element')
-
         def add_button():
             btn = b.find_element_by_id('add-video-button')
             click_if_available(btn)
-            scroll(btn)
+            self.scroll(btn)
             l.info('clicked [Add]')
 
         # get article title from metadata to reuse for video names
